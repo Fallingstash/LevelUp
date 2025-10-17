@@ -3,6 +3,7 @@ using DriverDeploy.Shared.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -135,7 +136,39 @@ namespace DriverDeploy.Agent {
       finally {
         _driverInstaller?.Cleanup();
       }
-    }
+
+            // Эндпоинт для обновления версии драйвера устройства
+            app.MapPost("/api/devices/update-driver", async (HttpContext context) => {
+                try
+                {
+                    using var reader = new StreamReader(context.Request.Body);
+                    var json = await reader.ReadToEndAsync();
+                    var updateData = JsonConvert.DeserializeObject<DeviceDriverUpdate>(json);
+
+                    if (updateData != null)
+                    {
+                        Console.WriteLine($"🔄 Обновляем версию драйвера для: {updateData.DeviceName} -> {updateData.NewDriverVersion}");
+
+                        // Здесь можно обновить данные в системе
+                        // В демо-режиме просто логируем
+
+                        return Results.Ok(new
+                        {
+                            success = true,
+                            message = $"Версия драйвера обновлена: {updateData.NewDriverVersion}"
+                        });
+                    }
+
+                    return Results.BadRequest("Invalid data");
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem($"Error: {ex.Message}");
+                }
+            });
+        }
+
+
 
     static string GetLocalIPAddress() {
       var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -175,4 +208,12 @@ namespace DriverDeploy.Agent {
       }
     }
   }
+
+    public class DeviceDriverUpdate
+    {
+        public string DeviceName { get; set; } = string.Empty;
+        public string PnpDeviceId { get; set; } = string.Empty;
+        public string NewDriverVersion { get; set; } = string.Empty;
+        public string DriverName { get; set; } = string.Empty;
+    }
 }

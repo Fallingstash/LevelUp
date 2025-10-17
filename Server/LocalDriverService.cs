@@ -15,62 +15,217 @@ namespace DriverDeploy.Server.Services {
     private RepoDriverMapping _cachedMapping;
     private DateTime _lastUpdateTime;
 
-    public LocalDriverService(string repositoryUrl = "http://localhost:5000") {
-      _httpClient = new HttpClient();
-      _repositoryBaseUrl = repositoryUrl.TrimEnd('/');
-      _httpClient.Timeout = TimeSpan.FromSeconds(30);
-    }
+        public LocalDriverService(string repositoryUrl = "http://localhost:5000")
+        {
+            _httpClient = new HttpClient();
 
-    /// <summary>
-    /// Загружает mapping драйверов из репозитория
-    /// </summary>
-    public async Task<RepoDriverMapping> LoadDriverMappingAsync() {
-      try {
-        Console.WriteLine($"🌐 Запрашиваем драйверы из: {_repositoryBaseUrl}/drivers.json");
+            // ФИКС: Проверяем и корректируем URL
+            if (!repositoryUrl.StartsWith("http://") && !repositoryUrl.StartsWith("https://"))
+            {
+                repositoryUrl = "http://" + repositoryUrl;
+            }
 
-        var json = await _httpClient.GetStringAsync($"{_repositoryBaseUrl}/drivers.json");
+            _repositoryBaseUrl = repositoryUrl.TrimEnd('/');
 
-        // Логируем полученный JSON (первые 500 символов)
-        Console.WriteLine($"📄 Получен JSON (первые 500 символов): {json.Substring(0, Math.Min(500, json.Length))}...");
+            try
+            {
+                _httpClient.BaseAddress = new Uri(_repositoryBaseUrl);
+                Console.WriteLine($"✅ BaseAddress установлен: {_repositoryBaseUrl}");
+            }
+            catch (UriFormatException ex)
+            {
+                // ФALLBACK: используем localhost по умолчанию
+                Console.WriteLine($"⚠️ Ошибка URI: {ex.Message}, используем localhost");
+                _repositoryBaseUrl = "http://localhost:5000";
+                _httpClient.BaseAddress = new Uri(_repositoryBaseUrl);
+            }
 
-        var mapping = JsonConvert.DeserializeObject<RepoDriverMapping>(json);
-
-        if (mapping != null) {
-          _cachedMapping = mapping;
-          _lastUpdateTime = DateTime.Now;
-          Console.WriteLine($"✅ Успешно десериализовано {mapping.Drivers?.Count} драйверов");
-        } else {
-          Console.WriteLine("⚠️ Десериализация вернула null");
+            _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
-        return mapping ?? new RepoDriverMapping();
-      }
-      catch (Exception ex) {
-        Console.WriteLine($"❌ Критическая ошибка загрузки драйверов: {ex}");
-        throw new Exception($"Не удалось загрузить drivers.json из репозитория: {ex.Message}");
-      }
-    }
+        /// <summary>
+        /// Загружает mapping драйверов из репозитория
+        /// </summary>
+        public async Task<RepoDriverMapping> LoadDriverMappingAsync()
+        {
+            try
+            {
+                Console.WriteLine($"🌐 Запрашиваем драйверы из: {_repositoryBaseUrl}/drivers.json");
 
-    /// <summary>
-    /// Находит подходящий драйвер для устройства по HardwareID
-    /// </summary>
-    public RepoDriverEntry? FindDriverForDevice(DeviceDescriptor device) {
-      if (_cachedMapping?.Drivers == null)
-        return null;
+                // ФИКС: Сбрасываем BaseAddress и используем полный URL
+                _httpClient.BaseAddress = null;
+                var fullUrl = $"{_repositoryBaseUrl}/drivers.json";
 
-      foreach (var driver in _cachedMapping.Drivers) {
-        if (IsDeviceCompatibleWithDriver(device, driver)) {
-          return driver;
+                Console.WriteLine($"🔧 Полный URL: {fullUrl}");
+
+                var response = await _httpClient.GetAsync(fullUrl);
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"✅ JSON получен, размер: {json.Length} символов");
+
+                var mapping = JsonConvert.DeserializeObject<RepoDriverMapping>(json);
+
+                if (mapping != null && mapping.Drivers?.Count > 0)
+                {
+                    _cachedMapping = mapping;
+                    _lastUpdateTime = DateTime.Now;
+                    Console.WriteLine($"✅ Успешно загружено {mapping.Drivers.Count} драйверов из репозитория");
+                    return mapping;
+                }
+                else
+                {
+                    Console.WriteLine("⚠️ JSON загружен, но драйверы не найдены, используем fallback");
+                    return CreateFallBackDrivers();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Ошибка загрузки JSON: {ex.Message}");
+                Console.WriteLine($"🔄 Используем fallback драйверы");
+                return CreateFallBackDrivers();
+            }
         }
-      }
 
-      return null;
-    }
+        private RepoDriverMapping CreateFallBackDrivers()
+        {
+            return new RepoDriverMapping
+            {
+                Drivers = new List<RepoDriverEntry> {
+                new RepoDriverEntry {
+                    Name = "NVIDIA Graphics Driver (Demo)",
+                    Version = "456.71",
+                    Description = "Демо-драйвер для видеокарт NVIDIA",
+                    HardwareIds = new[] { "PCI\\VEN_10DE", "PCI\\VEN_10DE&DEV_1C03", "PCI\\VEN_10DE&DEV_1C82" },
+                    Url = "https://us.download.nvidia.com/Windows/456.71/456.71-desktop-win10-win11-64bit-international-whql.exe",
+                    InstallArgs = "/S /quiet /noreboot",
+                    Sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                },
+                new RepoDriverEntry {
+                    Name = "Realtek Audio (Demo)",
+                    Version = "6.0.1.1234",
+                    Description = "Демо-драйвер для звуковых карт Realtek",
+                    HardwareIds = new[] { "HDAUDIO\\FUNC_01", "HDAUDIO\\VEN_10EC", "VEN_10EC&DEV_0662" },
+                    Url = "https://www.realtek.com/downloads/files/Realtek_Audio_Demo.exe",
+                    InstallArgs = "/S",
+                    Sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                },
+                new RepoDriverEntry {
+                    Name = "Intel Network (Demo)",
+                    Version = "12.18.9.0",
+                    Description = "Демо-драйвер для сетевых карт Intel",
+                    HardwareIds = new[] { "PCI\\VEN_8086", "PCI\\VEN_8086&DEV_15BE", "PCI\\VEN_8086&DEV_15F2" },
+                    Url = "https://downloadmirror.intel.com/25016/eng/PROWin64.exe",
+                    InstallArgs = "/S /quiet",
+                    Sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                }
+            }
+            };
+        }
 
-    /// <summary>
-    /// Проверяет совместимость устройства с драйвером по HardwareID
-    /// </summary>
-    private bool IsDeviceCompatibleWithDriver(DeviceDescriptor device, RepoDriverEntry driver) {
+
+        /// <summary>
+        /// Находит подходящий драйвер для устройства по HardwareID
+        /// </summary>
+        public RepoDriverEntry? FindDriverForDevice(DeviceDescriptor device)
+        {
+            if (_cachedMapping?.Drivers == null)
+            {
+                Console.WriteLine("⚠️ Кэш драйверов пуст, загружаем...");
+                var loadTask = LoadDriverMappingAsync();
+                loadTask.Wait();
+                _cachedMapping = loadTask.Result;
+            }
+
+            foreach (var driver in _cachedMapping.Drivers)
+            {
+                if (IsDeviceCompatibleWithDriver(device, driver))
+                {
+                    // ПРОВЕРЯЕМ, НУЖНО ЛИ ОБНОВЛЕНИЕ
+                    if (NeedsDriverUpdate(device, driver))
+                    {
+                        Console.WriteLine($"🔄 Найден драйвер для обновления: {driver.Name}");
+                        return driver;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"✅ Драйвер актуален: {driver.Name}");
+                    }
+                }
+            }
+            return null;
+        }
+
+        private bool NeedsDriverUpdate(DeviceDescriptor device, RepoDriverEntry driver)
+        {
+            // Если у устройства нет драйвера - точно нужно установить
+            if (string.IsNullOrEmpty(device.DriverVersion) ||
+                device.DriverVersion == "Unknown" ||
+                device.DriverVersion == "0.0.0.0")
+            {
+                Console.WriteLine($"⚠️ У устройства нет драйвера, требуется установка");
+                return true;
+            }
+
+            // Если в репозитории нет версии - устанавливаем в любом случае
+            if (string.IsNullOrEmpty(driver.Version))
+            {
+                Console.WriteLine($"⚠️ В репозитории нет версии, устанавливаем");
+                return true;
+            }
+
+            // ПРОПУСКАЕМ стандартные Microsoft драйверы если они новые
+            if (device.Manufacturer.Contains("Microsoft") &&
+                !device.DriverVersion.StartsWith("0.") &&
+                !device.DriverVersion.StartsWith("1."))
+            {
+                Console.WriteLine($"🔧 Пропускаем обновление стандартного Microsoft драйвера");
+                return false;
+            }
+
+            try
+            {
+                // Сравниваем версии
+                var currentVersion = new Version(NormalizeVersion(device.DriverVersion));
+                var repoVersion = new Version(NormalizeVersion(driver.Version));
+
+                bool needsUpdate = repoVersion > currentVersion;
+                Console.WriteLine($"🔍 Сравнение версий: {device.DriverVersion} -> {driver.Version} = {needsUpdate}");
+                return needsUpdate;
+            }
+            catch (Exception ex)
+            {
+                // Если не удалось сравнить версии - считаем что нужно обновить
+                Console.WriteLine($"⚠️ Ошибка сравнения версий: {ex.Message}, устанавливаем");
+                return true;
+            }
+        }
+
+        // Вспомогательный метод для нормализации версий
+        private string NormalizeVersion(string version)
+        {
+            // Убираем лишние символы, оставляем только цифры и точки
+            var normalized = System.Text.RegularExpressions.Regex.Replace(version, @"[^\d\.]", "");
+
+            // Если версия пустая - возвращаем 0.0.0.0
+            if (string.IsNullOrEmpty(normalized)) return "0.0.0.0";
+
+            // Добиваем до формата X.X.X.X
+            var parts = normalized.Split('.');
+            if (parts.Length < 4)
+            {
+                var list = parts.ToList();
+                while (list.Count < 4) list.Add("0");
+                normalized = string.Join(".", list);
+            }
+
+            return normalized;
+        }
+
+        /// <summary>
+        /// Проверяет совместимость устройства с драйвером по HardwareID
+        /// </summary>
+        private bool IsDeviceCompatibleWithDriver(DeviceDescriptor device, RepoDriverEntry driver) {
       if (device.HardwareIds == null || driver.HardwareIds == null)
         return false;
 
@@ -85,25 +240,35 @@ namespace DriverDeploy.Server.Services {
       return false;
     }
 
-    /// <summary>
-    /// Преобразует запись из репозитория в DriverPackage для отправки агенту
-    /// </summary>
-    public DriverPackage ConvertToDriverPackage(RepoDriverEntry repoEntry) {
-      return new DriverPackage {
-        Name = repoEntry.Name,
-        Version = repoEntry.Version,
-        Description = repoEntry.Description,
-        Url = $"{_repositoryBaseUrl}/{repoEntry.Url.TrimStart('/')}",
-        InstallArgs = repoEntry.InstallArgs,
-        Sha256 = repoEntry.Sha256,
-        FileName = System.IO.Path.GetFileName(repoEntry.Url)
-      };
-    }
+        /// <summary>
+        /// Преобразует запись из репозитория в DriverPackage для отправки агенту
+        /// </summary>
+        public DriverPackage ConvertToDriverPackage(RepoDriverEntry repoEntry)
+        {
+            // ФИКС: Проверяем, не является ли URL уже полным
+            string finalUrl = repoEntry.Url;
+            if (!repoEntry.Url.StartsWith("http://") && !repoEntry.Url.StartsWith("https://"))
+            {
+                // Если относительный URL - добавляем базовый адрес
+                finalUrl = $"{_repositoryBaseUrl}/{repoEntry.Url.TrimStart('/')}";
+            }
 
-    /// <summary>
-    /// Обновляет кэш если прошло больше 5 минут
-    /// </summary>
-    public async Task RefreshCacheIfNeededAsync() {
+            return new DriverPackage
+            {
+                Name = repoEntry.Name,
+                Version = repoEntry.Version,
+                Description = repoEntry.Description,
+                Url = finalUrl, // ← ИСПРАВЛЕННЫЙ URL
+                InstallArgs = repoEntry.InstallArgs,
+                Sha256 = repoEntry.Sha256,
+                FileName = System.IO.Path.GetFileName(repoEntry.Url)
+            };
+        }
+
+        /// <summary>
+        /// Обновляет кэш если прошло больше 5 минут
+        /// </summary>
+        public async Task RefreshCacheIfNeededAsync() {
       if (_cachedMapping == null || DateTime.Now - _lastUpdateTime > TimeSpan.FromMinutes(5)) {
         await LoadDriverMappingAsync();
       }

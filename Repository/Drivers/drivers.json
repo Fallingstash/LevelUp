@@ -1,31 +1,40 @@
 {
   "drivers": [
     {
-      "name": "NVIDIA Graphics Driver (Test)",
-      "version": "456.71",
-      "description": "Тестовый драйвер NVIDIA для демонстрации",
-      "hardwareIds": [
-        "PCI\\VEN_10DE&DEV_1C03",
-        "PCI\\VEN_10DE&DEV_1C82"
-      ],
-      "url": "/nvidia/test_driver.exe",
+      "name": "Intel Network (Demo)",
+      "version": "12.18.9.0",
+      "description": "Демо-драйвер для сетевых карт Intel",
+      "hardwareIds": [ "PCI\\VEN_8086", "PCI\\VEN_8086&DEV_15BE", "PCI\\VEN_8086&DEV_15F2" ],
+      "url": "intel_demo.exe",
       "installArgs": "/S /quiet",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "osRequirements": [ "Windows 10", "Windows 11" ],
-      "architecture": [ "x64" ]
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "name": "Realtek Audio Driver (Test)",
+      "name": "NVIDIA Graphics Driver (Demo)",
+      "version": "456.71",
+      "description": "Демо-драйвер для видеокарт NVIDIA",
+      "hardwareIds": [ "PCI\\VEN_10DE", "PCI\\VEN_10DE&DEV_1C03", "PCI\\VEN_10DE&DEV_1C82" ],
+      "url": "nvidia_demo.exe",
+      "installArgs": "/S /quiet /noreboot",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Realtek Audio Driver",
       "version": "6.0.1.1234",
-      "description": "Тестовый аудио драйвер Realtek",
-      "hardwareIds": [
-        "HDAUDIO\\FUNC_01&VEN_10EC&DEV_0282"
-      ],
-      "url": "/realtek/audio_setup.exe",
+      "description": "Драйвер для звуковых карт Realtek",
+      "hardwareIds": [ "HDAUDIO\\FUNC_01", "HDAUDIO\\VEN_10EC", "VEN_10EC&DEV_0662" ],
+      "url": "realtek_driver.exe",
       "installArgs": "/S",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "osRequirements": [ "Windows 10", "Windows 11" ],
-      "architecture": [ "x64", "x86" ]
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Intel SATA AHCI Controller",
+      "version": "10.0.19041.9999",
+      "description": "Драйвер для контроллера SATA AHCI",
+      "hardwareIds": [ "PCI\\VEN_8086", "PCI\\VEN_8086&DEV_2822", "PCI\\CC_010601" ],
+      "url": "intel_sata_driver.exe",
+      "installArgs": "/S /quiet",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ]
 }

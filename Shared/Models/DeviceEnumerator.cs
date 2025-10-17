@@ -14,25 +14,48 @@ namespace DriverDeploy.Agent
         /// </summary>
         public static List<DeviceDescriptor> GetAllDevices()
         {
-            // 1) Читаем все PnP-устройства (в т.ч. Mic = AudioEndpoint, GPU = Display и т.д.)
-            var devices = QueryPnPEntities();
+            var realDevices = QueryPnPEntities();
+            var driverMap = QuerySignedDrivers();
 
-            // 2) Подтягиваем версии драйверов из Win32_PnPSignedDriver
-            var driverMap = QuerySignedDrivers(); // ключ: DeviceID (PNPDeviceID), значение: DriverVersion
+            // ДОБАВЛЯЕМ ТЕСТОВЫЕ УСТРОЙСТВА ДЛЯ ДЕМО
+            // ДОБАВЛЯЕМ ТЕСТОВЫЕ УСТРОЙСТВА ДЛЯ ДЕМО
+            var demoDevices = new List<DeviceDescriptor> {
+    new DeviceDescriptor {
+        Name = "TEST NVIDIA Graphics Card [DEMO]",
+        Category = "GPU",
+        Manufacturer = "NVIDIA Corporation",
+        DriverVersion = "1.0.0.0", // ← УСТАРЕВШАЯ ВЕРСИЯ
+        PnpDeviceId = "TEST_DEVICE_001",
+        HardwareIds = new[] { "PCI\\VEN_10DE&DEV_1C03", "PCI\\VEN_10DE&DEV_1C82" }
+    },
+    new DeviceDescriptor {
+        Name = "TEST Realtek Audio [DEMO]",
+        Category = "Audio Endpoint",
+        Manufacturer = "Realtek",
+        DriverVersion = "", // ← ПУСТАЯ ВЕРСИЯ (вообще нет драйвера)
+        PnpDeviceId = "TEST_DEVICE_002",
+        HardwareIds = new[] { "HDAUDIO\\FUNC_01&VEN_10EC", "VEN_10EC&DEV_0662" }
+    },
+    new DeviceDescriptor {
+        Name = "TEST Intel Network [DEMO]",
+        Category = "Network",
+        Manufacturer = "Intel",
+        DriverVersion = "0.0.0.0", // ← НУЛЕВАЯ ВЕРСИЯ
+        PnpDeviceId = "TEST_DEVICE_003",
+        HardwareIds = new[] { "PCI\\VEN_8086&DEV_15BE", "PCI\\VEN_8086&DEV_15F2" }
+    }
+};
 
-            foreach (var d in devices)
+            realDevices.AddRange(demoDevices);
+
+            foreach (var d in realDevices)
             {
                 if (driverMap.TryGetValue(d.PnpDeviceId, out var ver))
                     d.DriverVersion = ver;
             }
 
-            // 3) Укрупнённая нормализация категории для UX (опционально)
-            foreach (var d in devices)
-                d.Category = NormalizeCategory(d.Category, d.Name);
-
-            return devices;
+            return realDevices;
         }
-
         private static List<DeviceDescriptor> QueryPnPEntities()
         {
             var result = new List<DeviceDescriptor>();

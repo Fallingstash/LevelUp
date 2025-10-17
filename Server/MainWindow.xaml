@@ -1,11 +1,12 @@
 ﻿<Window x:Class="DriverDeploy.Server.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DriverDeploy.Server"
         Title="LevelUp - Driver Management System" 
         Height="900" Width="1600"
         WindowStartupLocation="CenterScreen"
         Background="#0A0A0F">
-
+    
     <Window.Resources>
         <!-- Чистые цвета вместо градиентов -->
         <SolidColorBrush x:Key="BackgroundPrimary" Color="#0A0A0F"/>
@@ -17,7 +18,8 @@
         <SolidColorBrush x:Key="AccentGreen" Color="#8004FF"/>
         <SolidColorBrush x:Key="AccentPurple" Color="#8844FF"/>
         <SolidColorBrush x:Key="AccentOrange" Color="#FF0A4CED"/>
-        <SolidColorBrush x:Key="AccentRed" Color="#FF4477"/>
+        <SolidColorBrush x:Key="AccentRed" Color="#B02900"/>
+        <SolidColorBrush x:Key="AccentGreen1" Color="#008000"/>
         <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="SelectedTab" Color="#8844FF"/>
         <SolidColorBrush x:Key="TextSecondary" Color="#A0A0B0"/>
@@ -225,7 +227,7 @@
             </Setter>
         </Style>
 
-        <!-- LevelUp статус баджы -->
+        <!-- LevelUp -->
         <Style x:Key="StatusBadge" TargetType="Border">
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="6,2"/>
@@ -315,9 +317,19 @@
                                 <DataGridTemplateColumn Header="СТАТУС" Width="100">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource StatusBadge}" Background="{StaticResource AccentGreen}">
-                                                <TextBlock Text="АКТУАЛЬНЫЙ" Foreground="White" FontWeight="Bold" FontSize="9"/>
+                                            <Border x:Name="statusBorder" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+                                                <TextBlock x:Name="statusText" Text="АКТУАЛЬНЫЙ" Foreground="White" FontWeight="Bold" FontSize="7"/>
                                             </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding NeedsUpdate}" Value="True">
+                                                    <Setter TargetName="statusBorder" Property="Background" Value="{StaticResource AccentRed}"/>
+                                                    <Setter TargetName="statusText" Property="Text" Value="ТРЕБУЕТ ОБНОВЛЕНИЯ"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding NeedsUpdate}" Value="False">
+                                                    <Setter TargetName="statusBorder" Property="Background" Value="{StaticResource AccentGreen1}"/>
+                                                    <Setter TargetName="statusText" Property="Text" Value="АКТУАЛЬНЫЙ"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

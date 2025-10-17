@@ -9,6 +9,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using DriverDeploy.Server.Services;
 using System.Windows;
+using System.Globalization;
+using System.Windows.Data;
+using System.Windows.Media;
 
 namespace DriverDeploy.Server {
   public partial class MainWindow : Window {
@@ -18,6 +21,7 @@ namespace DriverDeploy.Server {
 
     private MachineInfo _selectedMachine;
     private LocalDriverService _driverRepoService;
+    private Dictionary<string, string> _updatedDeviceVersions = new Dictionary<string, string>();
 
     private string localIP;
 
@@ -25,12 +29,15 @@ namespace DriverDeploy.Server {
 
       InitializeComponent();
 
-       localIP = Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToString();
+            localIP = Dns.GetHostAddresses(Dns.GetHostName())
+                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)?.ToString();
+            // Инициализация сервиса репозитория драйверов
+            var repoUrl = "http://localhost:5000"; 
 
-      // Инициализация сервиса репозитория драйверов
-      _driverRepoService = new LocalDriverService(localIP); // Замени на IP VM3
+            Console.WriteLine($"🎯 Используем репозиторий: {repoUrl}");
+            _driverRepoService = new LocalDriverService(repoUrl); // Замени на IP VM3
 
-      MachinesListView.ItemsSource = Machines;
+            MachinesListView.ItemsSource = Machines;
       DriversListView.ItemsSource = CurrentMachineDrivers;
       DevicesListView.ItemsSource = CurrentMachineDevices;
 
@@ -38,34 +45,34 @@ namespace DriverDeploy.Server {
       _ = LoadDriverRepositoryAsync();
     }
 
-    private async Task LoadDriverRepositoryAsync() {
-      try {
-        ResultText.Text = "📥 Загружаем базу драйверов из репозитория...";
+        private async Task LoadDriverRepositoryAsync()
+        {
+            try
+            {
+                ResultText.Text = "📥 Загружаем базу драйверов из репозитория...";
+                Console.WriteLine("🔄 Начинаем загрузку драйверов из репозитория...");
 
-        // Добавляем отладочную информацию
-        Console.WriteLine("🔄 Начинаем загрузку драйверов из репозитория...");
+                var mapping = await _driverRepoService.LoadDriverMappingAsync();
 
-        var mapping = await _driverRepoService.LoadDriverMappingAsync();
+                // ДИАГНОСТИКА: Откуда загружены драйверы
+                var source = mapping.Drivers?.Any(d => d.Url.Contains("downloadmirror.intel.com")) == true
+                    ? "FALLBACK (из кода)"
+                    : "HTTP РЕПОЗИТОРИЙ";
 
-        // Логируем результат
-        Console.WriteLine($"✅ Загружено драйверов: {mapping.Drivers?.Count ?? 0}");
-        if (mapping.Drivers != null) {
-          foreach (var driver in mapping.Drivers) {
-            Console.WriteLine($"   - {driver.Name} (HWIDs: {string.Join(", ", driver.HardwareIds)})");
-          }
+                Console.WriteLine($"📊 Источник драйверов: {source}");
+                Console.WriteLine($"✅ Загружено драйверов: {mapping.Drivers?.Count ?? 0}");
+
+                RepoStatusText.Text = $"✅ {mapping.Drivers?.Count ?? 0} драйверов ({source})";
+                ResultText.Text = $"✅ База драйверов загружена из {source}. Доступно {mapping.Drivers?.Count ?? 0} драйверов";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Ошибка загрузки базы драйверов: {ex}");
+                RepoStatusText.Text = "❌ Ошибка загрузки";
+                ResultText.Text = $"❌ Ошибка загрузки базы драйверов: {ex.Message}";
+            }
         }
-
-        RepoStatusText.Text = $"✅ {mapping.Drivers?.Count ?? 0} драйверов";
-        ResultText.Text = $"✅ База драйверов успешно загружена. Доступно {mapping.Drivers?.Count ?? 0} драйверов";
-      }
-      catch (Exception ex) {
-        // Детальное логирование ошибки
-        Console.WriteLine($"❌ Ошибка загрузки базы драйверов: {ex}");
-        RepoStatusText.Text = "❌ Ошибка загрузки базы драйверов";
-        ResultText.Text = $"❌ Ошибка загрузки базы драйверов: {ex.Message}";
-      }
-    }
-    private async void RefreshRepoButton_Click(object sender, RoutedEventArgs e) {
+        private async void RefreshRepoButton_Click(object sender, RoutedEventArgs e) {
       await LoadDriverRepositoryAsync();
     }
 
@@ -136,78 +143,91 @@ namespace DriverDeploy.Server {
       }
     }
 
-    private async Task<bool> AutoUpdateDriversForMachine(MachineInfo machine) {
-      try {
-        ResultText.Text = $"🎯 Начинаем автоматическое обновление драйверов для {machine.MachineName}...";
+        private async Task<bool> AutoUpdateDriversForMachine(MachineInfo machine)
+        {
+            try
+            {
+                ResultText.Text = $"🎯 Начинаем автоматическое обновление драйверов для {machine.MachineName}...";
 
-        // Обновляем кэш репозитория
-        await _driverRepoService.RefreshCacheIfNeededAsync();
+                await _driverRepoService.RefreshCacheIfNeededAsync();
 
-        // Сканируем устройства если еще не сканировали
-        if (!CurrentMachineDevices.Any()) {
-          ResultText.Text = $"🔍 Сканируем устройства на {machine.MachineName}...";
-          await ScanDevicesForMachine(machine);
+                if (!CurrentMachineDevices.Any())
+                {
+                    ResultText.Text = $"🔍 Сканируем устройства на {machine.MachineName}...";
+                    await ScanDevicesForMachine(machine);
+                }
+
+                ResultText.Text = $"🔧 Анализируем {CurrentMachineDevices.Count} устройств...";
+                var devicesNeedingDrivers = new List<DeviceDescriptor>();
+                var driverPackagesMap = new Dictionary<DeviceDescriptor, DriverPackage>();
+
+                foreach (var device in CurrentMachineDevices)
+                {
+                    Console.WriteLine($"🔍 Анализ устройства: {device.Name}");
+                    Console.WriteLine($"   Версия драйвера: '{device.DriverVersion}'");
+                    Console.WriteLine($"   HardwareIDs: {string.Join(", ", device.HardwareIds)}");
+
+                    // Ищем драйвер в репозитории по HardwareID
+                    var repoDriver = _driverRepoService.FindDriverForDevice(device);
+                    if (repoDriver != null)
+                    {
+                        Console.WriteLine($"✅ Найден драйвер для обновления: {repoDriver.Name}");
+                        devicesNeedingDrivers.Add(device);
+                        driverPackagesMap[device] = _driverRepoService.ConvertToDriverPackage(repoDriver);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ Драйвер не найден или не требует обновления");
+                    }
+                }
+
+                Console.WriteLine($"📊 Итог: {devicesNeedingDrivers.Count} устройств требуют обновления");
+
+                if (!devicesNeedingDrivers.Any())
+                {
+                    ResultText.Text = $"✅ На {machine.MachineName} все драйверы актуальны!";
+                    return true;
+                }
+
+                // Устанавливаем найденные драйверы
+                ResultText.Text = $"🚀 Устанавливаем {devicesNeedingDrivers.Count} драйверов...";
+                int successCount = 0;
+                int totalCount = devicesNeedingDrivers.Count;
+
+                for (int i = 0; i < devicesNeedingDrivers.Count; i++)
+                {
+                    var device = devicesNeedingDrivers[i];
+                    var driverPackage = driverPackagesMap[device];
+
+                    ResultText.Text = $"📦 [{i + 1}/{totalCount}] Устанавливаем {driverPackage.Name} для {device.Name}...";
+
+                    var success = await DeployDriverToMachine(machine, driverPackage);
+                    if (success)
+                    {
+                        successCount++;
+                        // Обновляем статус устройства после успешной установки
+                        device.DriverVersion = driverPackage.Version;
+                    }
+
+                    // Небольшая пауза между установками
+                    await Task.Delay(1000);
+                }
+
+                // Обновляем отображение
+                DevicesListView.Items.Refresh();
+
+                ResultText.Text = $"🎉 Автообновление завершено! Успешно: {successCount}/{totalCount} драйверов";
+                return successCount > 0;
+            }
+            catch (Exception ex)
+            {
+                ResultText.Text = $"❌ Ошибка автообновления: {ex.Message}";
+                return false;
+            }
         }
 
-        // Анализируем устройства и находим нужные драйверы
-        ResultText.Text = $"🔧 Анализируем {CurrentMachineDevices.Count} устройств...";
-        var devicesNeedingDrivers = new List<DeviceDescriptor>();
-        var driverPackagesMap = new Dictionary<DeviceDescriptor, DriverPackage>();
-
-        foreach (var device in CurrentMachineDevices) {
-          // Пропускаем устройства которые уже имеют драйвер
-          if (!string.IsNullOrEmpty(device.DriverVersion) && device.DriverVersion != "Unknown")
-            continue;
-
-          // Ищем драйвер в репозитории по HardwareID
-          var repoDriver = _driverRepoService.FindDriverForDevice(device);
-          if (repoDriver != null) {
-            devicesNeedingDrivers.Add(device);
-            driverPackagesMap[device] = _driverRepoService.ConvertToDriverPackage(repoDriver);
-          }
-        }
-
-        if (!devicesNeedingDrivers.Any()) {
-          ResultText.Text = $"✅ На {machine.MachineName} все драйверы актуальны!";
-          return true;
-        }
-
-        // Устанавливаем найденные драйверы
-        ResultText.Text = $"🚀 Устанавливаем {devicesNeedingDrivers.Count} драйверов...";
-        int successCount = 0;
-        int totalCount = devicesNeedingDrivers.Count;
-
-        for (int i = 0; i < devicesNeedingDrivers.Count; i++) {
-          var device = devicesNeedingDrivers[i];
-          var driverPackage = driverPackagesMap[device];
-
-          ResultText.Text = $"📦 [{i + 1}/{totalCount}] Устанавливаем {driverPackage.Name} для {device.Name}...";
-
-          var success = await DeployDriverToMachine(machine, driverPackage);
-          if (success) {
-            successCount++;
-            // Обновляем статус устройства после успешной установки
-            device.DriverVersion = driverPackage.Version;
-          }
-
-          // Небольшая пауза между установками
-          await Task.Delay(1000);
-        }
-
-        // Обновляем отображение
-        DevicesListView.Items.Refresh();
-
-        ResultText.Text = $"🎉 Автообновление завершено! Успешно: {successCount}/{totalCount} драйверов";
-        return successCount > 0;
-      }
-      catch (Exception ex) {
-        ResultText.Text = $"❌ Ошибка автообновления: {ex.Message}";
-        return false;
-      }
-    }
-
-    // === МАССОВОЕ ОБНОВЛЕНИЕ ВСЕХ МАШИН ===
-    private async void UpdateAllMachinesButton_Click(object sender, RoutedEventArgs e) {
+        // === МАССОВОЕ ОБНОВЛЕНИЕ ВСЕХ МАШИН ===
+        private async void UpdateAllMachinesButton_Click(object sender, RoutedEventArgs e) {
       if (!Machines.Any()) {
         ResultText.Text = "❌ Сначала выполните сканирование сети";
         return;
@@ -249,71 +269,131 @@ namespace DriverDeploy.Server {
       }
     }
 
-    private async Task ScanDevicesForMachine(MachineInfo machine) {
-      try {
-        ResultText.Text = $"🧭 Получаем список устройств на {machine.MachineName}...";
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(10);
+        private async Task ScanDevicesForMachine(MachineInfo machine)
+        {
+            try
+            {
+                ResultText.Text = $"🧭 Получаем список устройств на {machine.MachineName}...";
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
 
-        var response = await client.GetAsync($"http://{machine.IpAddress}:8080/api/devices");
-        if (response.IsSuccessStatusCode) {
-          var json = await response.Content.ReadAsStringAsync();
-          var devices = JsonConvert.DeserializeObject<DeviceDescriptor[]>(json);
+                var response = await client.GetAsync($"http://{machine.IpAddress}:8080/api/devices");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var devices = JsonConvert.DeserializeObject<DeviceDescriptor[]>(json);
 
-          Application.Current.Dispatcher.Invoke(() =>
-          {
-            CurrentMachineDevices.Clear();
-            foreach (var device in devices) {
-              CurrentMachineDevices.Add(device);
+                    Application.Current.Dispatcher.Invoke(() => {
+                        CurrentMachineDevices.Clear();
+                        foreach (var device in devices)
+                        {
+                            // ВОССТАНАВЛИВАЕМ ОБНОВЛЕННЫЕ ВЕРСИИ ИЗ КЭША
+                            if (_updatedDeviceVersions.TryGetValue(device.PnpDeviceId, out var updatedVersion))
+                            {
+                                device.DriverVersion = updatedVersion;
+                                Console.WriteLine($"🔄 Восстановлена обновленная версия для {device.Name}: {updatedVersion}");
+                            }
+
+                            CurrentMachineDevices.Add(device);
+                        }
+                        DevicesStatusText.Text = $"Устройств: {devices.Length}";
+
+                        // ОБНОВЛЯЕМ ОТОБРАЖЕНИЕ СТАТУСОВ
+                        UpdateDevicesDisplay();
+                    });
+
+                    ResultText.Text = $"✅ Найдено {devices.Length} устройств на {machine.MachineName}";
+                }
+                else
+                {
+                    ResultText.Text = $"❌ Ошибка получения устройств: {response.StatusCode}";
+                }
             }
-            DevicesStatusText.Text = $"Устройств: {devices.Length}";
-          });
-
-          ResultText.Text = $"✅ Найдено {devices.Length} устройств на {machine.MachineName}";
-        } else {
-          ResultText.Text = $"❌ Ошибка получения устройств: {response.StatusCode}";
+            catch (Exception ex)
+            {
+                ResultText.Text = $"❌ Ошибка: {ex.Message}";
+            }
         }
-      }
-      catch (Exception ex) {
-        ResultText.Text = $"❌ Ошибка: {ex.Message}";
-      }
-    }
 
-    // === УСТАНОВКА ДРАЙВЕРА НА МАШИНУ ===
-    private async Task<bool> DeployDriverToMachine(MachineInfo machine, DriverPackage driverPackage) {
-      try {
-        ResultText.Text = $"🚀 Устанавливаем {driverPackage.Name} на {machine.MachineName}...";
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(60); // Увеличиваем таймаут для скачивания и установки
+        // === УСТАНОВКА ДРАЙВЕРА НА МАШИНУ ===
+        private async Task<bool> DeployDriverToMachine(MachineInfo machine, DriverPackage driverPackage)
+        {
+            try
+            {
+                ResultText.Text = $"🚀 Устанавливаем {driverPackage.Name} на {machine.MachineName}...";
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(60);
 
-        var json = JsonConvert.SerializeObject(driverPackage);
-        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                var json = JsonConvert.SerializeObject(driverPackage);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.PostAsync($"http://{machine.IpAddress}:8080/api/drivers/install", content);
-        if (response.IsSuccessStatusCode) {
-          var resultJson = await response.Content.ReadAsStringAsync();
-          var result = JsonConvert.DeserializeObject<InstallationResult>(resultJson);
+                var response = await client.PostAsync($"http://{machine.IpAddress}:8080/api/drivers/install", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    var resultJson = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<InstallationResult>(resultJson);
 
-          if (result.Success) {
-            ResultText.Text = $"✅ {result.Message}";
-            return true;
-          } else {
-            ResultText.Text = $"⚠️ {result.Message}";
-            return false;
-          }
-        } else {
-          ResultText.Text = $"❌ Ошибка установки: {response.StatusCode}";
-          return false;
+                    if (result.Success)
+                    {
+                        ResultText.Text = $"✅ {result.Message}";
+
+                        // ОБНОВЛЯЕМ СТАТУС УСТРОЙСТВА ПОСЛЕ УСПЕШНОЙ УСТАНОВКИ
+                        await UpdateDeviceDriverVersion(machine, driverPackage);
+                        return true;
+                    }
+                    else
+                    {
+                        ResultText.Text = $"⚠️ {result.Message}";
+                        return false;
+                    }
+                }
+                else
+                {
+                    ResultText.Text = $"❌ Ошибка установки: {response.StatusCode}";
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                ResultText.Text = $"❌ Ошибка развертывания: {ex.Message}";
+                return false;
+            }
         }
-      }
-      catch (Exception ex) {
-        ResultText.Text = $"❌ Ошибка развертывания: {ex.Message}";
-        return false;
-      }
-    }
 
-    // === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
-    private async void MachinesListView_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) {
+        // НОВЫЙ МЕТОД: Обновление версии драйвера устройства
+        private async Task UpdateDeviceDriverVersion(MachineInfo machine, DriverPackage driverPackage)
+        {
+            try
+            {
+                // Находим устройство, для которого устанавливали драйвер
+                var targetDevice = CurrentMachineDevices.FirstOrDefault(device =>
+                    _driverRepoService.FindDriverForDevice(device)?.Name == driverPackage.Name);
+
+                if (targetDevice != null)
+                {
+                    Console.WriteLine($"🔄 Обновляем статус устройства: {targetDevice.Name} -> {driverPackage.Version}");
+
+                    // СОХРАНЯЕМ В КЭШ ОБНОВЛЕННУЮ ВЕРСИЮ
+                    _updatedDeviceVersions[targetDevice.PnpDeviceId] = driverPackage.Version;
+                    Console.WriteLine($"💾 Сохранена версия в кэш: {targetDevice.PnpDeviceId} -> {driverPackage.Version}");
+
+                    // Обновляем версию в локальном списке
+                    targetDevice.DriverVersion = driverPackage.Version;
+                    targetDevice.NeedsUpdate = false;
+
+                    // Обновляем отображение
+                    DevicesListView.Items.Refresh();
+                    ResultText.Text += $"\n✅ Обновлен статус устройства: {targetDevice.Name}";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Ошибка обновления статуса: {ex.Message}");
+            }
+        }
+
+        // === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
+        private async void MachinesListView_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) {
       if (MachinesListView.SelectedItem is MachineInfo machine) {
         _selectedMachine = machine;
         SelectedMachineText.Text = $"{machine.MachineName} ({machine.IpAddress})";
@@ -362,5 +442,67 @@ namespace DriverDeploy.Server {
     private async Task CheckForDriverUpdates(MachineInfo machine) { /* ... */ }
     private void InstallDriverButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
     private void DebugButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
-  }
+
+        private void UpdateDevicesDisplay()
+        {
+            foreach (var device in CurrentMachineDevices)
+            {
+                // Определяем нуждается ли устройство в обновлении
+                var repoDriver = _driverRepoService.FindDriverForDevice(device);
+
+                // УЧИТЫВАЕМ КЭШИРОВАННЫЕ ОБНОВЛЕНИЯ
+                if (_updatedDeviceVersions.ContainsKey(device.PnpDeviceId))
+                {
+                    // Если устройство уже обновлялось - показываем как актуальное
+                    device.NeedsUpdate = false;
+                    Console.WriteLine($"✅ Устройство {device.Name} уже обновлялось, статус: АКТУАЛЬНЫЙ");
+                }
+                else
+                {
+                    // Иначе используем обычную логику
+                    device.NeedsUpdate = (repoDriver != null);
+                    Console.WriteLine($"🔍 Устройство {device.Name} требует обновления: {device.NeedsUpdate}");
+                }
+            }
+            DevicesListView.Items.Refresh();
+        }
+
+        public class BoolToColorConverter : IValueConverter
+        {
+            public static BoolToColorConverter Instance = new BoolToColorConverter();
+
+            public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                if (value is bool needsUpdate && needsUpdate)
+                {
+                    return new SolidColorBrush(Color.FromRgb(0x80, 0x04, 0xFF)); // AccentGreen
+                }
+                return new SolidColorBrush(Color.FromRgb(0xFF, 0x44, 0x77)); // AccentRed
+            }
+
+            public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public class BoolToTextConverter : IValueConverter
+        {
+            public static BoolToTextConverter Instance = new BoolToTextConverter();
+
+            public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                if (value is bool needsUpdate && needsUpdate)
+                {
+                    return "ТРЕБУЕТ ОБНОВЛЕНИЯ";
+                }
+                return "АКТУАЛЬНЫЙ";
+            }
+
+            public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                throw new NotImplementedException();
+            }
+        }
+    }
 }

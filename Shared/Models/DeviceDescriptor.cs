@@ -12,5 +12,7 @@
         public string DriverVersion { get; set; } = string.Empty;  // Версия драйвера
         public string PnpDeviceId { get; set; } = string.Empty;    // Уникальный идентификатор устройства
         public string[] HardwareIds { get; set; } = Array.Empty<string>(); // Массив HWID
+
+        public bool NeedsUpdate { get; set; }
     }
 }
