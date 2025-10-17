@@ -1,0 +1,31 @@
+{
+  "drivers": [
+    {
+      "name": "NVIDIA Graphics Driver (Test)",
+      "version": "456.71",
+      "description": "Тестовый драйвер NVIDIA для демонстрации",
+      "hardwareIds": [
+        "PCI\\\\VEN_10DE&DEV_1C03",
+        "PCI\\\\VEN_10DE&DEV_1C82"
+      ],
+      "url": "/nvidia/test_driver.exe",
+      "installArgs": "/S /quiet",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "osRequirements": [ "Windows 10", "Windows 11" ],
+      "architecture": [ "x64" ]
+    },
+    {
+      "name": "Realtek Audio Driver (Test)",
+      "version": "6.0.1.1234",
+      "description": "Тестовый аудио драйвер Realtek",
+      "hardwareIds": [
+        "HDAUDIO\\\\FUNC_01&VEN_10EC&DEV_0282"
+      ],
+      "url": "/realtek/audio_setup.exe",
+      "installArgs": "/S",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "osRequirements": [ "Windows 10", "Windows 11" ],
+      "architecture": [ "x64", "x86" ]
+    }
+  ]
+}
