@@ -336,26 +336,6 @@
                             </DataGrid.Columns>
                         </DataGrid>
                     </TabItem>
-
-                    <TabItem Header="📦 ДРАЙВЕРЫ" Style="{StaticResource SharpTabItem}">
-                        <DataGrid x:Name="DriversListView" Style="{StaticResource SharpDataGrid}"
-                                  AutoGenerateColumns="False">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="УСТРОЙСТВО" Binding="{Binding DeviceName}" Width="250"/>
-                                <DataGridTextColumn Header="ВЕРСИЯ" Binding="{Binding DriverVersion}" Width="120"/>
-                                <DataGridTextColumn Header="ПОСТАВЩИК" Binding="{Binding Provider}" Width="150"/>
-                                <DataGridTemplateColumn Header="СТАТУС" Width="120">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Border Style="{StaticResource StatusBadge}" Background="{StaticResource AccentGreen}">
-                                                <TextBlock Text="АКТУАЛЬНЫЙ" Foreground="White" FontWeight="Bold" FontSize="9"/>
-                                            </Border>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </TabItem>
                 </TabControl>
             </Border>
 
@@ -401,9 +381,7 @@
                         <Button x:Name="UpdateDriversButton" Content="🎯 АВТООБНОВЛЕНИЕ" 
                                 Style="{StaticResource SuccessButton}"
                                 Click="UpdateDrivers_Click" FontSize="10"/>
-                        <Button x:Name="UpdateAllMachinesButton" Content="🌐 ОБНОВИТЬ ВСЕ" 
-                                Style="{StaticResource PrimaryButton}"
-                                Click="UpdateAllMachinesButton_Click" FontSize="10"/>
+
                         <Button x:Name="RefreshRepoButton" Content="🔄 ОБНОВИТЬ БАЗУ" 
                                 Style="{StaticResource WarningButton}"
                                 Click="RefreshRepoButton_Click" FontSize="10"/>
@@ -469,14 +447,6 @@
 
                 <TextBlock Grid.Column="0" Text="LEVELUP DRIVER MANAGEMENT SYSTEM • v2.0" 
                            Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBlock Text="ПАМЯТЬ:" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <TextBlock Text="1.2 ГБ" Foreground="{StaticResource TextPrimary}" FontSize="9" FontWeight="Black" VerticalAlignment="Center" Margin="4,0,12,0"/>
-
-                    <TextBlock Text="ЦП:" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <TextBlock Text="12%" Foreground="{StaticResource TextPrimary}" FontSize="9" FontWeight="Black" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                </StackPanel>
             </Grid>
         </Border>
     </Grid>

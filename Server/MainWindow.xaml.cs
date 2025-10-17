@@ -38,7 +38,6 @@ namespace DriverDeploy.Server {
             _driverRepoService = new LocalDriverService(repoUrl); // Замени на IP VM3
 
             MachinesListView.ItemsSource = Machines;
-      DriversListView.ItemsSource = CurrentMachineDrivers;
       DevicesListView.ItemsSource = CurrentMachineDevices;
 
       // Загружаем базу драйверов при запуске
@@ -224,41 +223,7 @@ namespace DriverDeploy.Server {
                 ResultText.Text = $"❌ Ошибка автообновления: {ex.Message}";
                 return false;
             }
-        }
-
-        // === МАССОВОЕ ОБНОВЛЕНИЕ ВСЕХ МАШИН ===
-        private async void UpdateAllMachinesButton_Click(object sender, RoutedEventArgs e) {
-      if (!Machines.Any()) {
-        ResultText.Text = "❌ Сначала выполните сканирование сети";
-        return;
-      }
-
-      UpdateAllMachinesButton.IsEnabled = false;
-      ScanProgress.Visibility = Visibility.Visible;
-
-      try {
-        int totalMachines = Machines.Count;
-        int updatedMachines = 0;
-
-        foreach (var machine in Machines) {
-          ResultText.Text = $"🔄 Обновляем {machine.MachineName} ({updatedMachines + 1}/{totalMachines})...";
-
-          var success = await AutoUpdateDriversForMachine(machine);
-          if (success) {
-            updatedMachines++;
-          }
-
-          // Пауза между машинами
-          await Task.Delay(2000);
-        }
-
-        ResultText.Text = $"🎉 Массовое обновление завершено! Обработано {updatedMachines}/{totalMachines} машин";
-      }
-      finally {
-        UpdateAllMachinesButton.IsEnabled = true;
-        ScanProgress.Visibility = Visibility.Collapsed;
-      }
-    }
+        }  
 
     // === СКАНИРОВАНИЕ УСТРОЙСТВ ===
     private async void ScanDevicesButton_Click(object sender, RoutedEventArgs e) {
