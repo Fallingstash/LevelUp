@@ -1,4 +1,4 @@
-﻿    using DriverDeploy.Shared.Models;
+﻿using DriverDeploy.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,15 +14,12 @@ namespace DriverDeploy.Agent.Services {
 
     public DriverInstallerService() {
       _httpClient = new HttpClient();
-      _httpClient.Timeout = TimeSpan.FromMinutes(10); // Долгий таймаут для больших файлов
+      _httpClient.Timeout = TimeSpan.FromMinutes(10);
 
       _tempDownloadPath = Path.Combine(Path.GetTempPath(), "DriverDeploy");
       Directory.CreateDirectory(_tempDownloadPath);
     }
 
-        /// <summary>
-        /// Универсальный метод установки драйвера из любого репозитория
-        /// </summary>
         public async Task<InstallationResult> InstallDriverAsync(DriverPackage driverPackage)
         {
             var result = new InstallationResult
@@ -37,17 +34,14 @@ namespace DriverDeploy.Agent.Services {
                 Console.WriteLine($"🚀 Начинаем установку драйвера: {driverPackage.Name}");
                 Console.WriteLine($"📍 URL: {driverPackage.Url}");
 
-                // ДЕМО-РЕЖИМ: ТОЛЬКО для явно тестовых драйверов
                 if (driverPackage.Name.Contains("Demo") || driverPackage.Name.Contains("TEST"))
                 {
                     Console.WriteLine($"🎮 АКТИВИРУЕМ ДЕМО-РЕЖИМ для: {driverPackage.Name}");
                     return await InstallDemoDriverAsync(driverPackage);
                 }
 
-                // ДЛЯ РЕАЛЬНЫХ УСТРОЙСТВ - реальная установка
                 Console.WriteLine($"🔧 РЕАЛЬНАЯ УСТАНОВКА для: {driverPackage.Name}");
 
-                // Оригинальный код для реальных драйверов
                 var downloadedFile = await DownloadDriverFileAsync(driverPackage);
                 if (downloadedFile == null)
                 {
@@ -56,7 +50,6 @@ namespace DriverDeploy.Agent.Services {
                     return result;
                 }
 
-                // Шаг 2: Проверка целостности (если указан хэш)
                 if (!string.IsNullOrEmpty(driverPackage.Sha256)) {
           if (!await VerifyFileIntegrityAsync(downloadedFile, driverPackage.Sha256)) {
             result.Success = false;
@@ -66,10 +59,8 @@ namespace DriverDeploy.Agent.Services {
           }
         }
 
-        // Шаг 3: Установка в зависимости от типа файла
          var installResult = await ExecuteInstallationAsync(downloadedFile, driverPackage);
 
-        // Шаг 4: Очистка временных файлов
         try {
           File.Delete(downloadedFile);
         }
@@ -86,10 +77,6 @@ namespace DriverDeploy.Agent.Services {
       }
     }
 
-
-    /// <summary>
-    /// Скачивает файл драйвера из любого URL
-    /// </summary>
     private async Task<string> DownloadDriverFileAsync(DriverPackage driverPackage) {
       try {
         Console.WriteLine($"📥 Скачиваем файл из: {driverPackage.Url}");
@@ -122,9 +109,6 @@ namespace DriverDeploy.Agent.Services {
       }
     }
 
-    /// <summary>
-    /// Проверяет целостность файла по SHA256
-    /// </summary>
     private async Task<bool> VerifyFileIntegrityAsync(string filePath, string expectedHash) {
       try {
         Console.WriteLine("🔍 Проверяем целостность файла...");
@@ -146,13 +130,10 @@ namespace DriverDeploy.Agent.Services {
       }
       catch (Exception ex) {
         Console.WriteLine($"⚠️ Ошибка проверки целостности: {ex.Message}");
-        return false; // Безопасность: если проверка не удалась - не устанавливаем
+        return false; 
       }
     }
 
-        /// <summary>
-        /// Выполняет установку в зависимости от типа файла
-        /// </summary>
         private async Task<InstallationResult> ExecuteInstallationAsync(string filePath, DriverPackage driverPackage)
         {
             var fileExtension = Path.GetExtension(filePath).ToLowerInvariant();
@@ -167,7 +148,6 @@ namespace DriverDeploy.Agent.Services {
             {
                 Console.WriteLine($"🔧 Устанавливаем драйвер: {filePath}");
 
-                // ДЕМО-РЕЖИМ: Если драйвер содержит "Demo" или "TEST" или URL ведет на внешний сайт
                 if (driverPackage.Name.Contains("Demo") ||
                     driverPackage.Name.Contains("TEST") ||
                     driverPackage.Url.Contains("downloadmirror.intel.com") ||
@@ -179,7 +159,6 @@ namespace DriverDeploy.Agent.Services {
                     return await InstallDemoDriverAsync(driverPackage);
                 }
 
-                // Реальная установка для нормальных драйверов
                 switch (fileExtension)
                 {
                     case ".msi":
@@ -207,9 +186,6 @@ namespace DriverDeploy.Agent.Services {
             }
         }
 
-        /// <summary>
-        /// Демо-установка для тестовых драйверов
-        /// </summary>
         private async Task<InstallationResult> InstallDemoDriverAsync(DriverPackage driverPackage)
         {
             var result = new InstallationResult
@@ -224,7 +200,6 @@ namespace DriverDeploy.Agent.Services {
                 Console.WriteLine($"🎮 ДЕМО-РЕЖИМ: Установка {driverPackage.Name}");
                 Console.WriteLine($"🎮 ПРОПУСКАЕМ реальное скачивание для демо!");
 
-                // Имитация процесса установки с прогрессом
                 Console.WriteLine("📥 ДЕМО: Начинаем 'установку'...");
                 await Task.Delay(1000);
 
@@ -234,7 +209,6 @@ namespace DriverDeploy.Agent.Services {
                     await Task.Delay(500);
                 }
 
-                // Имитация успешной установки
                 Console.WriteLine("✅ ДЕМО: Установка завершена успешно!");
 
                 result.Success = true;
@@ -250,9 +224,6 @@ namespace DriverDeploy.Agent.Services {
             }
         }
 
-        /// <summary>
-        /// Установка MSI пакетов
-        /// </summary>
         private async Task<InstallationResult> InstallMsiPackageAsync(string msiPath, DriverPackage driverPackage) {
       var result = new InstallationResult {
         DriverName = driverPackage.Name,
@@ -301,9 +272,6 @@ namespace DriverDeploy.Agent.Services {
       }
     }
 
-    /// <summary>
-    /// Установка EXE пакетов
-    /// </summary>
     private async Task<InstallationResult> InstallExePackageAsync(string exePath, DriverPackage driverPackage) {
       var result = new InstallationResult {
         DriverName = driverPackage.Name,
@@ -352,9 +320,6 @@ namespace DriverDeploy.Agent.Services {
       }
     }
 
-    /// <summary>
-    /// Установка INF драйверов через pnputil
-    /// </summary>
     private async Task<InstallationResult> InstallInfDriverAsync(string infPath, DriverPackage driverPackage) {
       var result = new InstallationResult {
         DriverName = driverPackage.Name,
@@ -399,9 +364,6 @@ namespace DriverDeploy.Agent.Services {
       }
     }
 
-    /// <summary>
-    /// Очистка временных файлов
-    /// </summary>
     public void Cleanup() {
       try {
         if (Directory.Exists(_tempDownloadPath)) {

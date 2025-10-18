@@ -5,9 +5,6 @@ using System.Linq;
 
 namespace DriverDeploy.Shared.Services {
   public class DriverMatcher {
-    /// <summary>
-    /// Находит подходящие драйверы для устройства на основе HardwareID
-    /// </summary>
     public static List<DriverPackage> FindMatchingDrivers(
         DeviceDescriptor device,
         List<DriverPackage> availableDrivers) {
@@ -22,11 +19,7 @@ namespace DriverDeploy.Shared.Services {
       return matches;
     }
 
-    /// <summary>
-    /// Проверяет совместимость драйвера с устройством
-    /// </summary>
     private static bool IsDriverCompatible(DeviceDescriptor device, DriverPackage driver) {
-      // Если у драйвера есть конкретные HardwareID, проверяем точное совпадение
       if (driver.SupportedHardware.Any()) {
         foreach (var hardware in driver.SupportedHardware) {
           foreach (var deviceHardwareId in device.HardwareIds) {
@@ -37,24 +30,18 @@ namespace DriverDeploy.Shared.Services {
         }
       }
 
-      // Если точных HardwareID нет, используем эвристический анализ
       return HeuristicMatch(device, driver);
     }
 
-    /// <summary>
-    /// Эвристическое сопоставление по названию и производителю
-    /// </summary>
     private static bool HeuristicMatch(DeviceDescriptor device, DriverPackage driver) {
       var deviceName = device.Name.ToLowerInvariant();
       var driverName = driver.Name.ToLowerInvariant();
       var manufacturer = device.Manufacturer.ToLowerInvariant();
 
-      // Ключевые слова для разных категорий устройств
       var graphicsKeywords = new[] { "nvidia", "geforce", "radeon", "amd", "intel graphics", "graphics" };
       var audioKeywords = new[] { "realtek", "audio", "sound", "hd audio" };
       var networkKeywords = new[] { "intel", "ethernet", "network", "wifi", "wireless" };
 
-      // Проверяем категорию устройства
       if (device.Category.Contains("Display") || device.Category.Contains("GPU")) {
         return graphicsKeywords.Any(keyword =>
             driverName.Contains(keyword) || deviceName.Contains(keyword));
@@ -70,7 +57,6 @@ namespace DriverDeploy.Shared.Services {
             driverName.Contains(keyword) || deviceName.Contains(keyword));
       }
 
-      // Общая проверка по производителю
       if (!string.IsNullOrEmpty(manufacturer) &&
           driverName.Contains(manufacturer)) {
         return true;
@@ -79,9 +65,6 @@ namespace DriverDeploy.Shared.Services {
       return false;
     }
 
-    /// <summary>
-    /// Определяет, требуется ли обновление драйвера
-    /// </summary>
     public static bool NeedsUpdate(DeviceDescriptor device, DriverPackage latestDriver) {
       if (string.IsNullOrEmpty(device.DriverVersion) || string.IsNullOrEmpty(latestDriver.Version))
         return true;
@@ -92,7 +75,6 @@ namespace DriverDeploy.Shared.Services {
         return availableVersion > currentVersion;
       }
       catch {
-        // Если не удалось распарсить версии, считаем что обновление требуется
         return true;
       }
     }

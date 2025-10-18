@@ -5,7 +5,6 @@ public class DriverRepositoryService {
   private readonly HttpClient _httpClient;
   private readonly string _repositoryBaseUrl;
 
-  // Теперь указываем URL репозитория явно
   public DriverRepositoryService(string repositoryUrl = "http://localhost:8080") {
     _httpClient = new HttpClient();
     _repositoryBaseUrl = repositoryUrl.TrimEnd('/');
@@ -14,7 +13,6 @@ public class DriverRepositoryService {
 
   public async Task<RepoDriverMapping> LoadDriverMappingAsync() {
     try {
-      // Загружаем из отдельного сервера
       var json = await _httpClient.GetStringAsync($"{_repositoryBaseUrl}/drivers.json");
       var mapping = JsonConvert.DeserializeObject<RepoDriverMapping>(json);
       return mapping ?? new RepoDriverMapping();

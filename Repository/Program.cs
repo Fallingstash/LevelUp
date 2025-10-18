@@ -4,17 +4,14 @@ using Microsoft.Extensions.FileProviders;
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
-// Настройка порта
 app.Urls.Add("http://localhost:5000");
 
-// Создаем папку Drivers если не существует
 var driversPath = Path.Combine(Directory.GetCurrentDirectory(), "Drivers");
 if (!Directory.Exists(driversPath)) {
   Directory.CreateDirectory(driversPath);
   Console.WriteLine($"📁 Создана папка для драйверов: {driversPath}");
 }
 
-// Проверяем существование drivers.json
 var driversJsonPath = Path.Combine(driversPath, "drivers.json");
 Console.WriteLine($"🔍 Проверяем файл: {driversJsonPath}");
 Console.WriteLine($"📄 Файл существует: {File.Exists(driversJsonPath)}");
@@ -44,13 +41,11 @@ if (!File.Exists(driversJsonPath)) {
   Console.WriteLine($"✅ Создан тестовый drivers.json");
 }
 
-// Настройка статических файлов
 app.UseStaticFiles(new StaticFileOptions {
   FileProvider = new PhysicalFileProvider(driversPath),
   RequestPath = ""
 });
 
-// Эндпоинт для drivers.json с диагностикой
 app.MapGet("/drivers.json", () => {
   try {
     Console.WriteLine($"📥 Запрос к /drivers.json");

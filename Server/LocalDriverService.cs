@@ -1,5 +1,4 @@
-﻿// DriverDeploy.Server/Services/LocalDriverService.cs
-using DriverDeploy.Shared.Models;
+﻿using DriverDeploy.Shared.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -11,7 +10,6 @@ namespace DriverDeploy.Server.Services {
     private readonly HttpClient _httpClient;
     private readonly string _repositoryBaseUrl;
 
-    // Кэш mapping'а драйверов
     private RepoDriverMapping _cachedMapping;
     private DateTime _lastUpdateTime;
 
@@ -19,7 +17,6 @@ namespace DriverDeploy.Server.Services {
         {
             _httpClient = new HttpClient();
 
-            // ФИКС: Проверяем и корректируем URL
             if (!repositoryUrl.StartsWith("http://") && !repositoryUrl.StartsWith("https://"))
             {
                 repositoryUrl = "http://" + repositoryUrl;
@@ -34,7 +31,6 @@ namespace DriverDeploy.Server.Services {
             }
             catch (UriFormatException ex)
             {
-                // ФALLBACK: используем localhost по умолчанию
                 Console.WriteLine($"⚠️ Ошибка URI: {ex.Message}, используем localhost");
                 _repositoryBaseUrl = "http://localhost:5000";
                 _httpClient.BaseAddress = new Uri(_repositoryBaseUrl);
@@ -43,16 +39,12 @@ namespace DriverDeploy.Server.Services {
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
-        /// <summary>
-        /// Загружает mapping драйверов из репозитория
-        /// </summary>
         public async Task<RepoDriverMapping> LoadDriverMappingAsync()
         {
             try
             {
                 Console.WriteLine($"🌐 Запрашиваем драйверы из: {_repositoryBaseUrl}/drivers.json");
 
-                // ФИКС: Сбрасываем BaseAddress и используем полный URL
                 _httpClient.BaseAddress = null;
                 var fullUrl = $"{_repositoryBaseUrl}/drivers.json";
 
@@ -123,10 +115,6 @@ namespace DriverDeploy.Server.Services {
             };
         }
 
-
-        /// <summary>
-        /// Находит подходящий драйвер для устройства по HardwareID
-        /// </summary>
         public RepoDriverEntry? FindDriverForDevice(DeviceDescriptor device)
         {
             if (_cachedMapping?.Drivers == null)
@@ -141,7 +129,6 @@ namespace DriverDeploy.Server.Services {
             {
                 if (IsDeviceCompatibleWithDriver(device, driver))
                 {
-                    // ПРОВЕРЯЕМ, НУЖНО ЛИ ОБНОВЛЕНИЕ
                     if (NeedsDriverUpdate(device, driver))
                     {
                         Console.WriteLine($"🔄 Найден драйвер для обновления: {driver.Name}");
@@ -158,7 +145,6 @@ namespace DriverDeploy.Server.Services {
 
         private bool NeedsDriverUpdate(DeviceDescriptor device, RepoDriverEntry driver)
         {
-            // Если у устройства нет драйвера - точно нужно установить
             if (string.IsNullOrEmpty(device.DriverVersion) ||
                 device.DriverVersion == "Unknown" ||
                 device.DriverVersion == "0.0.0.0")
@@ -167,14 +153,12 @@ namespace DriverDeploy.Server.Services {
                 return true;
             }
 
-            // Если в репозитории нет версии - устанавливаем в любом случае
             if (string.IsNullOrEmpty(driver.Version))
             {
                 Console.WriteLine($"⚠️ В репозитории нет версии, устанавливаем");
                 return true;
             }
 
-            // ПРОПУСКАЕМ стандартные Microsoft драйверы если они новые
             if (device.Manufacturer.Contains("Microsoft") &&
                 !device.DriverVersion.StartsWith("0.") &&
                 !device.DriverVersion.StartsWith("1."))
@@ -185,7 +169,6 @@ namespace DriverDeploy.Server.Services {
 
             try
             {
-                // Сравниваем версии
                 var currentVersion = new Version(NormalizeVersion(device.DriverVersion));
                 var repoVersion = new Version(NormalizeVersion(driver.Version));
 
@@ -195,22 +178,17 @@ namespace DriverDeploy.Server.Services {
             }
             catch (Exception ex)
             {
-                // Если не удалось сравнить версии - считаем что нужно обновить
                 Console.WriteLine($"⚠️ Ошибка сравнения версий: {ex.Message}, устанавливаем");
                 return true;
             }
         }
 
-        // Вспомогательный метод для нормализации версий
         private string NormalizeVersion(string version)
         {
-            // Убираем лишние символы, оставляем только цифры и точки
             var normalized = System.Text.RegularExpressions.Regex.Replace(version, @"[^\d\.]", "");
 
-            // Если версия пустая - возвращаем 0.0.0.0
             if (string.IsNullOrEmpty(normalized)) return "0.0.0.0";
 
-            // Добиваем до формата X.X.X.X
             var parts = normalized.Split('.');
             if (parts.Length < 4)
             {
@@ -222,9 +200,6 @@ namespace DriverDeploy.Server.Services {
             return normalized;
         }
 
-        /// <summary>
-        /// Проверяет совместимость устройства с драйвером по HardwareID
-        /// </summary>
         private bool IsDeviceCompatibleWithDriver(DeviceDescriptor device, RepoDriverEntry driver) {
       if (device.HardwareIds == null || driver.HardwareIds == null)
         return false;
@@ -240,16 +215,11 @@ namespace DriverDeploy.Server.Services {
       return false;
     }
 
-        /// <summary>
-        /// Преобразует запись из репозитория в DriverPackage для отправки агенту
-        /// </summary>
         public DriverPackage ConvertToDriverPackage(RepoDriverEntry repoEntry)
         {
-            // ФИКС: Проверяем, не является ли URL уже полным
             string finalUrl = repoEntry.Url;
             if (!repoEntry.Url.StartsWith("http://") && !repoEntry.Url.StartsWith("https://"))
             {
-                // Если относительный URL - добавляем базовый адрес
                 finalUrl = $"{_repositoryBaseUrl}/{repoEntry.Url.TrimStart('/')}";
             }
 
@@ -258,16 +228,13 @@ namespace DriverDeploy.Server.Services {
                 Name = repoEntry.Name,
                 Version = repoEntry.Version,
                 Description = repoEntry.Description,
-                Url = finalUrl, // ← ИСПРАВЛЕННЫЙ URL
+                Url = finalUrl,
                 InstallArgs = repoEntry.InstallArgs,
                 Sha256 = repoEntry.Sha256,
                 FileName = System.IO.Path.GetFileName(repoEntry.Url)
             };
         }
 
-        /// <summary>
-        /// Обновляет кэш если прошло больше 5 минут
-        /// </summary>
         public async Task RefreshCacheIfNeededAsync() {
       if (_cachedMapping == null || DateTime.Now - _lastUpdateTime > TimeSpan.FromMinutes(5)) {
         await LoadDriverMappingAsync();

@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 namespace DriverDeploy.Shared.Services {
   public class MachineScanner {
     public static List<string> GetLocalIPRange() {
-      // Получаем IP адрес текущей машины
       var localIP = Dns.GetHostAddresses(Dns.GetHostName())
           .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
 
@@ -17,7 +16,6 @@ namespace DriverDeploy.Shared.Services {
         return new List<string>();
       }
 
-      // Генерируем диапазон IP (например, 192.168.1.1 - 192.168.1.255)
       var baseIP = localIP.ToString().Substring(0, localIP.ToString().LastIndexOf('.') + 1);
       return Enumerable.Range(1, 254).Select(i => $"{baseIP}{i}").ToList();
     }
@@ -25,18 +23,16 @@ namespace DriverDeploy.Shared.Services {
     public static List<string> GetIPRangeWithLocalhost() {
       var ipRange = GetLocalIPRange();
 
-      // Добавляем специальные адреса для тестирования на одном ПК
-      ipRange.Add("127.0.0.1");    // localhost
-      ipRange.Add("localhost");     // доменное имя
+      ipRange.Add("127.0.0.1");    
+      ipRange.Add("localhost");     
 
-      // Также добавляем реальный IP текущей машины
       var localIP = Dns.GetHostAddresses(Dns.GetHostName())
           .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
       if (localIP != null) {
         ipRange.Add(localIP.ToString());
       }
 
-      return ipRange.Distinct().ToList(); // Убираем дубликаты
+      return ipRange.Distinct().ToList(); 
     }
 
     public static async Task<bool> IsMachineOnline(string ip, int timeout = 1000) {

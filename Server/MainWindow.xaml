@@ -6,9 +6,8 @@
         Height="900" Width="1600"
         WindowStartupLocation="CenterScreen"
         Background="#0A0A0F">
-    
+
     <Window.Resources>
-        <!-- Чистые цвета вместо градиентов -->
         <SolidColorBrush x:Key="BackgroundPrimary" Color="#0A0A0F"/>
         <SolidColorBrush x:Key="BackgroundSecondary" Color="#151521"/>
         <SolidColorBrush x:Key="BackgroundCard" Color="#1E1E2E"/>
@@ -18,14 +17,13 @@
         <SolidColorBrush x:Key="AccentGreen" Color="#8004FF"/>
         <SolidColorBrush x:Key="AccentPurple" Color="#8844FF"/>
         <SolidColorBrush x:Key="AccentOrange" Color="#FF0A4CED"/>
-        <SolidColorBrush x:Key="AccentRed" Color="#B02900"/>
+        <SolidColorBrush x:Key="AccentRed" Color="#B00000"/>
         <SolidColorBrush x:Key="AccentGreen1" Color="#008000"/>
         <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="SelectedTab" Color="#8844FF"/>
         <SolidColorBrush x:Key="TextSecondary" Color="#A0A0B0"/>
         <SolidColorBrush x:Key="TextMuted" Color="#6C6C8A"/>
 
-        <!-- Sharp стили -->
         <Style x:Key="LevelUpButton" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource BackgroundCard}"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
@@ -106,7 +104,6 @@
             <Setter Property="CornerRadius" Value="10"/>
         </Style>
 
-        <!-- Исправленные стили для TabControl -->
         <Style x:Key="SharpTabControl" TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -149,7 +146,6 @@
             </Setter>
         </Style>
 
-        <!-- Упрощенный стиль для DataGrid без кастомного ScrollViewer -->
         <Style x:Key="SharpDataGrid" TargetType="DataGrid">
             <Setter Property="Background" Value="{StaticResource BackgroundCard}"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
@@ -164,11 +160,9 @@
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="SelectionUnit" Value="FullRow"/>
 
-            <!-- Row Background -->
             <Setter Property="RowBackground" Value="Transparent"/>
             <Setter Property="AlternatingRowBackground" Value="#252538"/>
 
-            <!-- Стиль строк -->
             <Setter Property="RowStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridRow">
@@ -189,7 +183,6 @@
                 </Setter.Value>
             </Setter>
 
-            <!-- Стиль заголовков колонок -->
             <Setter Property="ColumnHeaderStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridColumnHeader">
@@ -205,7 +198,6 @@
                 </Setter.Value>
             </Setter>
 
-            <!-- Стиль ячеек -->
             <Setter Property="CellStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridCell">
@@ -227,14 +219,12 @@
             </Setter>
         </Style>
 
-        <!-- LevelUp -->
         <Style x:Key="StatusBadge" TargetType="Border">
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="6,2"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
         </Style>
 
-        <!-- Стиль для ScrollBar (применяется ко всему приложению) -->
         <Style TargetType="ScrollBar">
             <Setter Property="Background" Value="{StaticResource BackgroundSecondary}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
@@ -249,7 +239,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Sharp хедер -->
         <Border Grid.Row="0" Background="{StaticResource BackgroundHeader}" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1" Padding="20,12">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -258,7 +247,6 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- LevelUp брендинг -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Background="{StaticResource AccentBlue}" CornerRadius="6" Padding="8,6" Margin="0,0,12,0">
                         <TextBlock Text="⚡" FontSize="16" Foreground="White" FontWeight="Bold"/>
@@ -271,7 +259,6 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Статус -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Background="{StaticResource AccentGreen}" CornerRadius="4" Padding="6,3" Margin="0,0,12,0">
                         <TextBlock Text="ONLINE" Foreground="White" FontWeight="Bold" FontSize="9"/>
@@ -281,14 +268,12 @@
             </Grid>
         </Border>
 
-        <!-- Основной контент -->
         <Grid Grid.Row="1" Margin="15">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="380"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Вкладки -->
             <Border Grid.Column="0" Style="{StaticResource SharpCard}" Margin="0,0,10,0" Padding="0" Background="Transparent">
                 <TabControl Style="{StaticResource SharpTabControl}">
                     <TabItem Header="🖥️ СЕТЕВЫЕ УСТРОЙСТВА" Style="{StaticResource SharpTabItem}">
@@ -300,8 +285,6 @@
                                 <DataGridTextColumn Header="IP АДРЕС" Binding="{Binding IpAddress}" Width="120"/>
                                 <DataGridTextColumn Header="СТАТУС" Binding="{Binding Status}" Width="100"/>
                                 <DataGridTextColumn Header="ОПЕРАЦИОННАЯ СИСТЕМА" Binding="{Binding OSVersion}" Width="180"/>
-                                <DataGridTextColumn Header="ДРАЙВЕРЫ" Binding="{Binding InstalledDrivers.Count}" Width="80"/>
-                                <DataGridTextColumn Header="ОБНОВЛЕНИЯ" Binding="{Binding OutdatedDrivers.Count}" Width="100"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </TabItem>
@@ -339,9 +322,7 @@
                 </TabControl>
             </Border>
 
-            <!-- Правая панель (остается без изменений) -->
             <StackPanel Grid.Column="1">
-                <!-- Управление -->
                 <Border Style="{StaticResource SharpCard}" Margin="0,0,0,8" Padding="16">
                     <StackPanel>
                         <TextBlock Text="🎯 УПРАВЛЕНИЕ" FontSize="13" FontWeight="Black" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
@@ -367,7 +348,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Действия -->
                 <Border Style="{StaticResource SharpCard}" Margin="0,0,0,8" Padding="16">
                     <StackPanel>
                         <TextBlock Text="⚡ БЫСТРЫЕ ДЕЙСТВИЯ" FontSize="13" FontWeight="Black" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
@@ -388,7 +368,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Статус -->
                 <Border Style="{StaticResource SharpCard}" Margin="0,0,0,8" Padding="16">
                     <StackPanel>
                         <TextBlock Text="📊 СИСТЕМНЫЙ СТАТУС" FontSize="13" FontWeight="Black" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
@@ -416,7 +395,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Журнал -->
                 <Border Style="{StaticResource SharpCard}" Padding="16">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -437,7 +415,6 @@
             </StackPanel>
         </Grid>
 
-        <!-- Sharp статус бар -->
         <Border Grid.Row="2" Background="{StaticResource BackgroundHeader}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1,0,0,0" Padding="12,6">
             <Grid>
                 <Grid.ColumnDefinitions>

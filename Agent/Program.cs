@@ -18,13 +18,11 @@ namespace DriverDeploy.Agent {
     private static DriverInstallerService _driverInstaller;
 
     static async Task Main(string[] args) {
-      // Инициализация сервиса установки
       _driverInstaller = new DriverInstallerService();
 
       var builder = WebApplication.CreateBuilder(args);
       var app = builder.Build();
 
-      // Эндпоинт для проверки доступности
       app.MapGet("/api/ping", () =>
       {
         Console.WriteLine($"✅ Получен ping запрос от клиента");
@@ -38,7 +36,6 @@ namespace DriverDeploy.Agent {
         };
       });
 
-      // Эндпоинт для получения списка драйверов
       app.MapGet("/api/drivers", () =>
       {
         Console.WriteLine($"📦 Запрос списка драйверов");
@@ -48,7 +45,6 @@ namespace DriverDeploy.Agent {
         return _systemDrivers;
       });
 
-      // Эндпоинт для установки драйвера
       app.MapPost("/api/drivers/install", async (DriverPackage driverPackage) =>
       {
         Console.WriteLine($"🔧 Запрос на установку драйвера: {driverPackage.Name}");
@@ -58,7 +54,6 @@ namespace DriverDeploy.Agent {
         try {
           var result = await _driverInstaller.InstallDriverAsync(driverPackage);
 
-          // Логируем результат
           if (result.Success) {
             Console.WriteLine($"✅ Установка завершена успешно: {result.Message}");
           } else {
@@ -81,7 +76,6 @@ namespace DriverDeploy.Agent {
         }
       });
 
-      // Эндпоинт для проверки обновлений
       app.MapGet("/api/drivers/outdated", () =>
       {
         Console.WriteLine($"🔍 Проверка устаревших драйверов");
@@ -89,7 +83,6 @@ namespace DriverDeploy.Agent {
         return Results.Ok(outdated);
       });
 
-      // Эндпоинт для получения списка устройств
       app.MapGet("/api/devices", () =>
       {
         var devices = DeviceEnumerator.GetAllDevices();
@@ -97,7 +90,6 @@ namespace DriverDeploy.Agent {
         return Results.Ok(devices);
       });
 
-      // Новый эндпоинт для проверки здоровья агента
       app.MapGet("/api/health", () =>
       {
         return Results.Ok(new {
@@ -109,7 +101,6 @@ namespace DriverDeploy.Agent {
         });
       });
 
-      // Новый эндпоинт для получения информации о диске (для отладки)
       app.MapGet("/api/system/info", () =>
       {
         var drive = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory));
@@ -137,7 +128,6 @@ namespace DriverDeploy.Agent {
         _driverInstaller?.Cleanup();
       }
 
-            // Эндпоинт для обновления версии драйвера устройства
             app.MapPost("/api/devices/update-driver", async (HttpContext context) => {
                 try
                 {
@@ -148,9 +138,6 @@ namespace DriverDeploy.Agent {
                     if (updateData != null)
                     {
                         Console.WriteLine($"🔄 Обновляем версию драйвера для: {updateData.DeviceName} -> {updateData.NewDriverVersion}");
-
-                        // Здесь можно обновить данные в системе
-                        // В демо-режиме просто логируем
 
                         return Results.Ok(new
                         {
@@ -181,7 +168,6 @@ namespace DriverDeploy.Agent {
     }
 
     static List<DriverInfo> ScanSystemDrivers() {
-      // Заглушка - в реальной реализации здесь будет сканирование через WMI
       return new List<DriverInfo>
       {
                 new DriverInfo { DeviceName = "NVIDIA GeForce GTX 1060", DriverVersion = "456.71", Provider = "NVIDIA" },
@@ -190,7 +176,6 @@ namespace DriverDeploy.Agent {
     }
 
     static List<DriverInfo> FindOutdatedDrivers() {
-      // Заглушка - в реальной реализации здесь будет проверка версий
       return new List<DriverInfo>
       {
                 new DriverInfo { DeviceName = "NVIDIA GeForce GTX 1060", DriverVersion = "456.71", Provider = "NVIDIA", NeedsUpdate = true }
